@@ -1,108 +1,57 @@
 #!/bin/bash -x
 
-if [ $# -ne 1 ]; then
-  echo USAGE: sh repeating_FRB.sh ObsID
+if [ $# -ne 2 ]; then
+  echo USAGE: sh repeating_FRB.sh ObsID CHUNK
   exit
 fi
 
-echo Processing starting
+echo "  - Processing of $1 starting"
 
 WORKDIR=`mktemp -d --tmpdir=/dev/shm`
 cd ${WORKDIR}
 
 OBS=$1
-INDIR=/path/${OBS}
-OUTDIR=/path
+CHUNK=$2
+INDIR=/data1/Daniele/FRB121102/test
+OUTDIR=/data1/Daniele/FRB121102/test
 
 mkdir ${OUTDIR}/${OBS}
 
 
-#Parallelize!!!
-for BEAM in `ls ${INDIR}`; do  #check that directory only contains beam folders, otherwise  #{0,1,2,3,4,5,6}
-  mkdir ${BEAM}
-  cd ${BEAM}
-  FITS=file.fits
-  NAME=${OBS}_${BEAM}
-  mkdir ${NAME}
-  
-  cp ${INDIR}/${BEAM}/${FITS} .
-  
-  rfifind -o ${NAME} -noweights -noscales -nooffsets -clip -zerodm -rfips ${FITS}
-  prepsubband -o ${NAME} -noweights -noscales -nooffsets -clip -zerodm -runavg -numout ?? -lodm ?? -dmstep ?? -numdms ?? -nsub ?? -mask ${NAME}_rfifind.mask ${FITS}
-  prepsubband -o ${NAME} -noweights -noscales -nooffsets -clip -zerodm -runavg -numout ?? -lodm ?? -dmstep ?? -numdms ?? -nsub ?? -mask ${NAME}_rfifind.mask -downsamp 128 ${FITS}
-  
-  single_pulse_search.py -m 60 -p -t ?? *.dat
-  
-  rm *.dat *.inf
-  
-  cat *.singlepulse | head -n 1 > ${NAME}.sp
-  tail --lines=+2 -q  *.txt >> ${NAME}.sp
-  
-  rm *.singlepulse
-  
-  mkdir output
-  
-  python repeating_FRB_diagnostic.py ${WORKDIR} ${NAME}.sp ${FITS} output
-  
-  cp output ${OUTDIR}/${OBS}/${NAME}
-  
+FIL=${OBS}_SAP000_B000_cDM051.00.fil #_p00${CHUNK}.fil
+cp ${INDIR}/${FIL} .
+
+rfifind -o ${OBS} -filterbank -noweights -noscales -nooffsets -clip 6.0 -zerodm -time 1.0 -rfips ${FIL}
+
+
+# Durations from 0.000652 to 0.0978 s (downfactor 4 to 4*150)
+prepsubband -o d1_${OBS} -noweights -noscales -nooffsets -clip 6.0 -zerodm -runavg -numout 1200000 -lodm 50.0 -dmstep 0.1 -numdms 20 -nsub 1600 -downsamp 4 -mask ${OBS}_rfifind.mask ${FIL}
+#prepsubband -o d1_${OBS} -noweights -noscales -nooffsets -clip 6.0 -zerodm -runavg -numout ?? -lodm 554.0 -dmstep 0.005 -numdms 2000 -nsub 3200 -downsamp 4 -mask ${OBS}_rfifind.mask ${FIL}
+single_pulse_search.py -m 0.1 -p -t 8 -b *.dat
+
+cat *.singlepulse | head -n 1 > ${OBS}.sp
+tail --lines=+2 -q  *.singlepulse >> ${OBS}.sp
+rm *.singlepulse
+
+# Durations from 0.083456 to 12.5184 s (downfactor 4*128 to 4*128*150)
+for i in `ls d1_*.dat`; do 
+  base_name=`basename ${i} .dat`
+  file_name=${base_name##d1_}
+  prepdata -o d2_${file_name} -downsamp 128 $i
+  rm $i
+  rm ${base_name}.inf
 done
+single_pulse_search.py -m 13.0 -p -t 8 -b *.dat
+#ATTENZIONE! Moltiplicare Downfactor per 128
+tail --lines=+2 -q  *.singlepulse >> ${OBS}.sp
 
+rm d*.dat d*.inf d*.singlepulse
 
-
-
-#Parallel
-for BEAM in `ls ${INDIR}`; do
-  mkdir ${BEAM}
-  NAME=${OBS}_${BEAM}
-done
-
-for BEAM in `ls ${INDIR}`; do
-  FITS=file.fits
-  cp ${INDIR}/${BEAM}/${FITS} ${BEAM} &
-done
-wait
-
-for BEAM in `ls ${INDIR}`; do
-  FITS=${BEAM}/file.fits
-  NAME=${BEAM}/${OBS}_${BEAM}
-  rfifind -o ${NAME} -noweights -noscales -nooffsets -clip -zerodm -rfips ${FITS} &
-done
-wait
-
-for BEAM in `ls ${INDIR}`; do
-  FITS=${BEAM}/file.fits
-  NAME=${BEAM}/${OBS}_${BEAM}
-  prepsubband -o ${NAME} -noweights -noscales -nooffsets -clip -zerodm -runavg -numout ?? -lodm ?? -dmstep ?? -numdms ?? -nsub ?? -mask ${NAME}_rfifind.mask ${FITS} &
-  prepsubband -o ${NAME}_d128 -noweights -noscales -nooffsets -clip -zerodm -runavg -numout ?? -lodm ?? -dmstep ?? -numdms ?? -nsub ?? -mask ${NAME}_rfifind.mask -downsamp 128 ${FITS} &
-done
-wait
+mkdir output
+mv *_rfifind.ps output
+mv ${OBS}.sp output
+cp output/* ${OUTDIR}/${OBS}/${CHUNK}
   
-for BEAM in `ls ${INDIR}`; do
-  single_pulse_search.py -m 60 -p -t ?? ${BEAM}/*.dat &
-done
-wait
+cd ${OUTDIR}
+rm -rf ${WORKDIR}
 
-for BEAM in `ls ${INDIR}`; do
-  rm *.dat *.inf
-  cat *.singlepulse | head -n 1 > ${NAME}.sp
-  tail --lines=+2 -q  *.txt >> ${NAME}.sp
-  rm *.singlepulse
-  mkdir output
-done
-
-  
-  rm *.dat *.inf
-  
-  cat *.singlepulse | head -n 1 > ${NAME}.sp
-  tail --lines=+2 -q  *.txt >> ${NAME}.sp
-  
-  rm *.singlepulse
-  
-  mkdir output
-  
-  python repeating_FRB_diagnostic.py ${WORKDIR} ${NAME}.sp ${FITS} output
-  
-  cp output ${OUTDIR}/${OBS}/${NAME}
-  
-done

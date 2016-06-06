@@ -8,51 +8,31 @@ import numpy as np
 import matplotlib.pyplot as plt
 import presto
 import pandas as pd
-import pyfits
+import filterbank
 import pyximport; pyximport.install()
 
 import repeating_FRB_Cfunct as C_Funct
 import Utilities
 
 
-N_beams = 7
-
 DM_SPACING = 
 dT_GROUP = 
 dDM_GROUP = 
 
 
-inf = read_header()
-F_MIN = inf['OBSFREQ'] - inf['CHAN_BW'] * inf['NCHAN'] / 2.
-F_MAX = inf['OBSFREQ'] + inf['CHAN_BW'] * inf['NCHAN'] / 2.
-RES = inf['TBIN']
-
-def read_header():
-  for beam in N_beams:
-    if os.path.isfile(fits_filename.format(beam)):
-      fits = pyfits.open(fits_filename.format(beam),memmap=True)
-      header = fits['SUBINT'].header + fits['PRIMARY'].header
-      fits.close()
-      return header
-  print 'No fits file found - exiting...'
-  exit()
-
-
 def load_candidates():
   def read_candidates():
     def load_pulses():    
-      def load_beam_pulses(beam):
-        def read_singlepulse(beam):
-          filename = singlepulse_filename.format(beam)
-          events = pd.read_csv(singlepulse_file, delim_whitespace=True)
-          events.columns = ['DM','Sigma','Time','Sample','Downfact','Sampling','a','b','c']  #TO MODIFY
+      def load_beam_pulses():
+        def read_singlepulse():
+          events = pd.read_csv(singlepulse_filename, delim_whitespace=True)
+          events.columns = ['DM','Sigma','Time','Sample','Downfact','a','b']
           events['Duration'] = events.Sampling * events.Downfact
-          events = events.ix[:,['DM','Sigma','Time','Sample','Downfact','Sampling']]
+          events = events.ix[:,['DM','Sigma','Time','Sample','Downfact','Duration']]
           events.index.name = 'idx'
-          events['BEAM'] = beam
           events['Pulse'] = 0
 
-        events = read_singlepulse(beam)
+        events = read_singlepulse()
           
         def straight_time(Time, DM):
           k = 4149. #s-1
@@ -213,14 +193,18 @@ def plot_spectrum(cands):
   
 def main():
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,description="The program create plots of dynamic spectrum for the best pulses from presto single pulse output.")
-  parser.add_argument('file_names', nargs=4, help='Working directory containing fits and singlepulse files, fits and singlepulse file names, output folder name')
+  parser.add_argument('file_names', nargs=4, help='Working directory containing filterbank and singlepulse files, filterbank and singlepulse file names, output folder name')
   args = parser.parse_args()
   
-  fits_filename = '{}/{}'.format(args.file_names[0],args.file_names[1])
+  fil_filename = '{}/{}'.format(args.file_names[0],args.file_names[1])
   singlepulse_filename = '{}/{}'.format(args.file_names[0],args.file_names[2])
   output_folder = '{}/{}'.format(args.file_names[0],args.file_names[3])
   
-  
+  inf = filterbank.read_header(filename)[0]
+  F_MIN = inf['fch1'] - inf['nchans'] * abs(inf['foff'])
+  F_MAX = inf['fch1']
+  RES = inf['tsamp']
+
   candidates = load_candidates()  
   plot_spectrum(candidates)
 
