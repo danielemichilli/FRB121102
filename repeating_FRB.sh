@@ -5,7 +5,7 @@ if [ $# -ne 2 ]; then
   exit
 fi
 
-echo "  - Processing of $1 starting"
+echo "  - Processing of $1 starting, "; date
 
 OBS=$1
 CHUNK=$2
@@ -62,4 +62,4 @@ rm -rf ${WORKDIR}
 
 #Print back to console
 exec 1>&3 2>&4
-echo "  - Processing of $1 completed"
+echo "  - Processing of $1 completed, "; date

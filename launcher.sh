@@ -15,8 +15,9 @@ if [ ! -e ${FIL} ]; then
   exit
 fi
 
-echo "============================="
-echo "Processing of OBS $1 starting"
+echo ""
+echo "======================================="
+echo "Processing of OBS $1 starting, "; date
 
 mkdir meta_data
 cd meta_data
@@ -32,12 +33,17 @@ if [ ! -e ${OBS}_p008.fil ]; then
 fi
   
 #Submit the processing for each chunk
-for i in `seq 0 3`; do
+for i in `seq 0 2`; do
   sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i &
 done
 wait
 
-for i in `seq 4 8`; do
+for i in `seq 3 4`; do
+  sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i &
+done
+wait
+
+for i in `seq 5 7`; do
   sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i &
 done
 wait
@@ -50,5 +56,5 @@ tail --lines=+2 -q  meta_data/*.sp >> ${OBS}.sp
 
 #Print back to console
 exec 1>&3 2>&4
-echo "Processing of OBS $1 completed"
-echo "============================="
+echo "Processing of OBS $1 completed, "; date
+echo "======================================="
