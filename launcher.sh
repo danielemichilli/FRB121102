@@ -23,8 +23,8 @@ cd meta_data
 
 #Print to log files
 exec 3>&1 4>&2
-exec 1>meta_data/${OBS}.log
-exec 2>meta_data/${OBS}.err
+exec 1>${OBS}.log
+exec 2>${OBS}.err
 
 #Split the filterbank file if it has not been done
 if [ ! -e ${OBS}_p008.fil ]; then
