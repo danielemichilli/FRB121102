@@ -16,7 +16,15 @@ if [ ! -e ${FIL} ]; then
 fi
 
 echo "============================="
-echo "  - Processing of $1 starting"
+echo "Processing of OBS $1 starting"
+
+#Print to log files
+exec 3>&1 4>&2
+exec 1>${OUTDIR}/meta_data/${OBS}.log
+exec 2>${OUTDIR}/meta_data/${OBS}.err
+
+mkdir meta_data
+cd meta_data
 
 #Split the filterbank file if it has not been done
 if [ ! -e ${OBS}_p008.fil ]; then
@@ -34,7 +42,13 @@ for i in `seq 4 8`; do
 done
 wait
 
+cd ${INDIR}
+cat meta_data/*.sp | head -n 1 > ${OBS}.sp
+tail --lines=+2 -q  meta_data/*.sp >> ${OBS}.sp
+
 #python repeating_FRB_diagnostic.py ${WORKDIR} ${OBS}.sp ${FIL} ${WORKDIR}/output/diagnostic_plots
 
-echo "  - Processing of $1 finished"
+#Print back to console
+exec 1>&3 2>&4
+echo "Processing of OBS $1 completed"
 echo "============================="
