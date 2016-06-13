@@ -7,13 +7,18 @@ fi
 
 echo "  - Processing of $1 starting"
 
-WORKDIR=`mktemp -d --tmpdir=/dev/shm`
-cd ${WORKDIR}
-
-OBS=$1
-CHUNK=$2
 INDIR=/data1/Daniele/FRB121102/test
 OUTDIR=/data1/Daniele/FRB121102/test
+OBS=$1
+CHUNK=$2
+
+#Print to log files
+exec 3>&1 4>&2
+exec 1>${OUTDIR}/${OBS}_${i}.log
+exec 2>${OUTDIR}/${OBS}_${i}.err
+
+WORKDIR=`mktemp -d --tmpdir=/dev/shm`
+cd ${WORKDIR}
 
 mkdir ${OUTDIR}/${OBS}
 
@@ -59,3 +64,6 @@ cp output/* ${OUTDIR}/${OBS}/${CHUNK}
 cd ${OUTDIR}
 rm -rf ${WORKDIR}
 
+#Print back to console
+exec 1>&3 2>&4
+echo "  - Processing of $1 completed"

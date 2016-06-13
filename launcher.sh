@@ -19,18 +19,18 @@ echo "============================="
 echo "  - Processing of $1 starting"
 
 #Split the filterbank file if it has not been done
-if [ ! -e ${OBS}_p006.fil ]; then
+if [ ! -e ${OBS}_p008.fil ]; then
   /data1/Daniele/FRB121102/software/splitfil -o ${OBS} ${FIL}
 fi
   
 #Submit the processing for each chunk
 for i in `seq 0 3`; do
-  sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i > ${OBS}_${i}.log ${OBS}_${i}.err &
+  sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i &
 done
 wait
 
 for i in `seq 4 8`; do
-  sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i > ${OBS}_${i}.log ${OBS}_${i}.err &
+  sh /data1/Daniele/FRB121102/software/repeating_FRB.sh ${OBS} $i &
 done
 wait
 
