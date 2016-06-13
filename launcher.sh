@@ -18,13 +18,13 @@ fi
 echo "============================="
 echo "Processing of OBS $1 starting"
 
-#Print to log files
-exec 3>&1 4>&2
-exec 1>${OUTDIR}/meta_data/${OBS}.log
-exec 2>${OUTDIR}/meta_data/${OBS}.err
-
 mkdir meta_data
 cd meta_data
+
+#Print to log files
+exec 3>&1 4>&2
+exec 1>meta_data/${OBS}.log
+exec 2>meta_data/${OBS}.err
 
 #Split the filterbank file if it has not been done
 if [ ! -e ${OBS}_p008.fil ]; then
